@@ -24,7 +24,7 @@ The test data are available here:
 https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
 
 ## Data Processing
-First step is to load the libraries we will need, the data provided and setting the seed for reproducibilty. 
+First step is to load the libraries we will use, then the data provided in the files and finally setting the seed for reproducibilty. 
 
 
 ```{r cars}
@@ -38,7 +38,7 @@ original_training <- read.csv("C:/Users/diana/Desktop/Big Data Specialization/Da
 dim(original_training)
 dim(original_testing)
 ```
-gggggggg
+
 After analyzing the data I observed many columns with empty values. Hence I proceeded to delete them from the training and testing data.
 I have also removed the columns with very little variance.
 My updated training dataset now has 59 variables to use
