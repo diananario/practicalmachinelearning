@@ -1,0 +1,135 @@
+---
+title: "Practical Machine Learning Course Project"
+author: "Diana Nario"
+date: "February 15, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+## Data
+
+The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+## Data Processing
+First step is to load the libraries we will need, the data provided and setting the seed for reproducibilty. 
+
+
+```{r cars}
+
+set.seed(1666)
+library(corrplot)
+library(caret)
+original_testing <- read.csv("C:/Users/diana/Desktop/Big Data Specialization/Data Sciencie Specialization-Hopkings/pml-testing.csv")
+
+original_training <- read.csv("C:/Users/diana/Desktop/Big Data Specialization/Data Sciencie Specialization-Hopkings/pml-training.csv")
+dim(original_training)
+dim(original_testing)
+```
+
+After analyzing the data I observed many columns with empty values. Hence I proceeded to delete them from the training and testing data.
+I have also removed the columns with very little variance.
+My updated training dataset now has 59 variables to use
+
+```{r}
+missingData = is.na(original_training)
+
+removeColumns = which(colSums(missingData) > 19000)
+
+new_training = original_training[, -removeColumns]
+
+dim(new_training)
+
+nzvars <- nearZeroVar(new_training)
+train_data <- new_training[, -nzvars]
+dim(train_data)
+summary(train_data)
+
+```
+
+
+After manually inspecting the columns I found that I still had variables that were not related at all to objective I wanted to accomplish. Hence I manually removed them from my dataset and obtained 53 variables.
+
+```{r}
+train_data<-train_data[,-c(1:6)]
+```
+
+
+
+## Splitting in Training and Testing
+
+I  split the updated training dataset into a training dataset (70% of the observations) and a validation dataset (30% of the observations). I will use the latest to perform cross validation when creating the model.
+
+```{r}
+inTrain = createDataPartition(y = train_data$classe, p = 0.7, list = FALSE)
+training = train_data[inTrain, ]
+validation = train_data[-inTrain, ]
+```
+
+
+Now, after the aplit it is important to check if the remiaing variables are highly correlated and if so, remove them or replace them with something like PCA. 
+
+```{r}
+correlations <- cor(training[, -53])
+corrplot(correlations, order = "FPC", method = "color", type = "lower", tl.cex = 0.8, 
+    tl.col = rgb(0, 0, 0))
+```
+
+
+    
+
+The image above shows in darker colors the pair of predictors that are highly correlated to each other(excluding the main diagonal). It looks like we might have many variables that can be groupped together in a weigthed combination. 
+
+Hence, my next step is to implement Principal Component Analysis to create new variables that summarize the ones identified above. Here careful is needed since the new variables might be difficult to explain.
+
+## PCA 
+Using the caret package I preprocess the data leaving out the variable we want to predict (column 53). Then the predict function is used to apply the same PCA to the orignal data. 
+
+```{r}
+preProc <- preProcess(training[, -53], method = "pca", thresh = 0.99)
+PredTrain <- predict(preProc, training[, -53])
+Predvalidation <- predict(preProc, validation[, -53])
+```
+
+
+
+## Fiting a Random Forest model
+I chose to apply a Random Forest model and the Cross validation method in the trainControl parameter. 
+
+```{r}
+modelFit <- train(training$classe ~ ., method = "rf", data = PredTrain)
+    
+```
+
+
+Below is the graph for the importance of each principal componet, PC1, PC18 and PC15 are shown to be the most important ones.
+```{r}
+varImpPlot(modelFit$finalModel, sort = TRUE, type = 1, pch = 19, col = 1, cex = 1, 
+    main = " Individual Principal Components")
+```
+
+
+    
+## Cross Validation and Confussion Matrix
+```{r}
+predictions <- predict(modelFit, validation)
+confus <- confusionMatrix(validation$classe, predictions)
+confus$table
+```
+
+## Acurracy
+accur <- postResample(validation$classe, predictions)
+model_accuracy <- accur[[1]]
+model_accuracy
