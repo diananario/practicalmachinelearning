@@ -79,7 +79,7 @@ validation = train_data[-inTrain, ]
 ```
 
 
-Now, after the aplit it is important to check if the remiaing variables are highly correlated and if so, remove them or replace them with something like PCA. 
+Now, after the split it is important to check if the remiaing variables are highly correlated and if so, remove them or replace them with something like PCA. 
 
 ```{r}
 correlations <- cor(training[, -53])
@@ -106,30 +106,25 @@ Predvalidation <- predict(preProc, validation[, -53])
 
 
 ## Fiting a Random Forest model
-I chose to apply a Random Forest model and the Cross validation method in the trainControl parameter. 
+I chose to apply a Random Forest model using the caret package. 
 
-```{r}
 modelFit <- train(training$classe ~ ., method = "rf", data = PredTrain)
-    
-```
 
 
-Below is the graph for the importance of each principal componet, PC1, PC18 and PC15 are shown to be the most important ones.
-```{r}
+Below is the graph for the importance of each principal componet.
+
 varImpPlot(modelFit$finalModel, sort = TRUE, type = 1, pch = 19, col = 1, cex = 1, 
     main = " Individual Principal Components")
-```
-
 
     
 ## Cross Validation and Confussion Matrix
-```{r}
 predictions <- predict(modelFit, validation)
 confus <- confusionMatrix(validation$classe, predictions)
 confus$table
-```
+
 
 ## Acurracy
 accur <- postResample(validation$classe, predictions)
 model_accuracy <- accur[[1]]
 model_accuracy
+
